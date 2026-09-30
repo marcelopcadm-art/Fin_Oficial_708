@@ -89,6 +89,12 @@ h2{overflow-wrap:break-word}
 .dp .x{border:0;color:var(--mu);padding:0 5px;font-size:17px}
 details{margin:2px 0 0}
 summary{cursor:pointer;color:var(--ac);font-size:11px}
+.msum{list-style:none;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;cursor:pointer;color:var(--tx);font-size:13px;padding:2px 0}
+.msum::-webkit-details-marker{display:none}
+.msum::before{content:'▸';color:var(--ac);font-size:13px;flex:none;transition:transform .15s}
+.mdet[open]>.msum::before{transform:rotate(90deg)}
+.msum>span:first-of-type{flex:1;min-width:0}
+.mdet[open]>.msum{margin-bottom:6px}
 .it{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:1px 0;color:var(--mu)}
 .tip{border-left:3px solid var(--ac);background:var(--in);padding:6px 9px;margin-bottom:5px;font-size:12px}
 .tip.r{border-color:var(--bad)}.tip.g{border-color:var(--good)}.tip.a{border-color:var(--am)}
@@ -509,20 +515,25 @@ function invMonth(m,op){
  return{ks,un,tot,venc:m<op&&un};
 }
 function invRow(m,d,ks,un,tot,c){
- return `<div class="goal"><div class="row" style="border:0;padding:0"><span><b>${mLabel(m)}</b> <small class="${d[1]}">${d[0]}</small><br><small class="mu">fecha ${pad(S.close)}/${m.slice(5)} · vence ${pad(S.due)}/${m.slice(5)}</small></span><span class="r"><b>${R(tot)}</b><br>${ks.length?(un?`<button class="chk" onclick="quitMes('${m}')">Quitar mês</button>`:'<small class="pos">Quitada ✓</small>'):''}</span></div>`+
- (ks.map(k=>{const pd=S.paid[m+'|'+k],v=pd?pd.v:c.cards[k],it=invItems(m,k);return `<div class="row"><span>${S.cards[k].n}${pd?` <small class="pos">quitada ${pd.d.slice(8)}/${pd.d.slice(5,7)}</small>`:''}${it.length?`<details><summary>${it.length} ite${it.length>1?'ns':'m'}</summary>${it.map(x=>`<div class="it"><span>${esc(x.d)}${x.n?' · '+x.n:''}</span><span>${R(x.v)}</span></div>`).join('')}</details>`:''}</span><span class="r">${R(v)}<br><button class="chk ${pd?'on':''}" onclick="togInv('${m}','${k}')">${pd?'Quitada':'Quitar'}</button></span></div>`}).join('')||'<small class="mu">Sem compras ainda.</small>')+'</div>';
+ const op=!!(F.om&&F.om[m]);
+ const body=ks.map(k=>{const pd=S.paid[m+'|'+k],v=pd?pd.v:c.cards[k],it=invItems(m,k);return `<div class="row"><span>${S.cards[k].n}${pd?` <small class="pos">quitada ${pd.d.slice(8)}/${pd.d.slice(5,7)}</small>`:''}${it.length?`<details><summary>${it.length} ite${it.length>1?'ns':'m'}</summary>${it.map(x=>`<div class="it"><span>${esc(x.d)}${x.n?' · '+x.n:''}</span><span>${R(x.v)}</span></div>`).join('')}</details>`:''}</span><span class="r">${R(v)}<br><button class="chk ${pd?'on':''}" onclick="togInv('${m}','${k}')">${pd?'Quitada':'Quitar'}</button></span></div>`}).join('')||'<small class="mu">Sem compras ainda.</small>';
+ return `<div class="goal"><details class="mdet" data-m="${m}" ${op?'open':''} ontoggle="F.om=F.om||{};F.om[this.dataset.m]=this.open">
+ <summary class="msum"><span><b>${mLabel(m)}</b> <small class="${d[1]}">${d[0]}</small><br><small class="mu">fecha ${pad(S.close)}/${m.slice(5)} · vence ${pad(S.due)}/${m.slice(5)}</small></span><b>${R(tot)}</b></summary>
+ ${ks.length&&un?`<button class="btn g" style="margin:0 0 6px" onclick="quitMes('${m}')">Quitar mês</button>`:''}${body}</details></div>`;
 }
 function togMais(){F.maisF=!F.maisF;render()}
+function togTodos(){const d=[...document.querySelectorAll('.mdet')],a=d.some(x=>!x.open);d.forEach(x=>x.open=a)}
 function invList(){
  const op=invYM(today()),mais=!!F.maisF,rng=mais?[-6,12]:[-1,2];
- let h='<h2>Faturas por mês</h2>',venc=0,rows='';
+ let venc=0,rows='';
  for(let i=rng[0];i<=rng[1];i++){
   const m=addM(op,i),c=calc(m),info=invMonth(m,op);if(info.skip)continue;
   if(info.venc)venc++;
   const d=m===op?['Aberta','pos']:m<op?(info.un?['Fechada · a pagar','neg']:['Fechada','mu']):['Futura','mu'];
   rows+=invRow(m,d,info.ks,info.un,info.tot,c);
  }
- return (venc?`<button class="btn g" style="margin:0 0 10px" onclick="quitFechadas()">Quitar todas as faturas fechadas (${venc})</button>`:'')+h+rows+
+ return (venc?`<button class="btn g" style="margin:0 0 10px" onclick="quitFechadas()">Quitar todas as faturas fechadas (${venc})</button>`:'')+
+ `<div class="row" style="border:0;padding:0 0 6px;align-items:center"><h2 style="margin:0">Faturas por mês</h2><button class="chk" onclick="togTodos()">Expandir / recolher todos</button></div>`+rows+
  `<button class="btn g" onclick="togMais()">${mais?'Ver menos meses':'Ver mais meses'}</button>`;
 }
 function instList(){
